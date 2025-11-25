@@ -6,15 +6,19 @@ import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import { mockOrders, mockListings, mockRestaurants } from '@/shared/lib/mockData';
-import { Order } from '@/shared/types';
+import { Order, Listing } from '@/shared/types';
 import { Leaf, ArrowLeft, Package } from 'lucide-react';
 import { useToast } from '@/shared/hooks/use-toast';
+
+type OrderWithListing = Order & {
+  listing?: Listing;
+};
 
 const RestaurantOrders = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<OrderWithListing[]>([]);
 
   useEffect(() => {
     if (!user || user.role !== 'restaurant') {

@@ -3,11 +3,10 @@ import { useAuth } from '@/shared/contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
-import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import { ListingCard } from '@/apps/user/components/ListingCard';
 import { mockListings, mockRestaurants } from '@/shared/lib/mockData';
 import { Listing } from '@/shared/types';
-import { Leaf, ArrowLeft, Bookmark } from 'lucide-react';
+import { ArrowLeft, Bookmark } from 'lucide-react';
 
 const Bookmarks = () => {
   const { user } = useAuth();
@@ -54,18 +53,6 @@ const Bookmarks = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-full gradient-eco flex items-center justify-center">
-              <Leaf className="h-6 w-6 text-eco-foreground" />
-            </div>
-            <h1 className="text-2xl font-bold">EcoBites</h1>
-          </Link>
-          <ThemeToggle />
-        </div>
-      </header>
-
       <main className="container mx-auto px-4 py-8">
         <Button
           variant="ghost"

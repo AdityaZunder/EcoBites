@@ -3,11 +3,12 @@ import { Card } from '@/shared/components/ui/card';
 import { useCart } from '@/shared/contexts/CartContext';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
-import { Minus, Plus, Trash2, ShoppingCart, ArrowRight } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingCart, ArrowRight, AlertCircle, Crown } from 'lucide-react';
 import { Badge } from '@/shared/components/ui/badge';
 import { PageHeader } from '@/shared/components/common/PageHeader';
 import { EmptyState } from '@/shared/components/common/EmptyState';
 import { calculateServiceFee, isPremiumActive } from '@/shared/lib/premiumUtils';
+import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 
 const Cart = () => {
   const { items, updateQuantity, removeItem, totalPrice, totalItems } = useCart();
@@ -16,6 +17,18 @@ const Cart = () => {
 
   const userIsPremium = isPremiumActive(user);
   const serviceFee = calculateServiceFee(userIsPremium);
+
+  // Calculate daily orders for free users
+  const getDailyOrderCount = () => {
+    if (!user || userIsPremium) return 0;
+    const today = new Date().toISOString().split('T')[0];
+    const lastDate = user.lastOrderDate;
+    return lastDate === today ? (user.dailyOrdersPlacedToday || 0) : 0;
+  };
+
+  const dailyOrderCount = getDailyOrderCount();
+  const remainingOrders = userIsPremium ? Infinity : Math.max(0, 3 - dailyOrderCount);
+  const showOrderLimitWarning = !userIsPremium && dailyOrderCount >= 2;
 
   if (items.length === 0) {
     return (
@@ -149,14 +162,44 @@ const Cart = () => {
               </div>
             </div>
 
+            {/* Order Limit Warning for Free Users */}
+            {showOrderLimitWarning && (
+              <Alert className="border-amber-500/50 bg-amber-500/10">
+                <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+                <AlertDescription className="text-sm">
+                  {remainingOrders === 0 ? (
+                    <span className="font-semibold text-amber-700 dark:text-amber-400">
+                      Daily order limit reached! Upgrade to Premium for unlimited orders.
+                    </span>
+                  ) : (
+                    <span className="text-amber-700 dark:text-amber-400">
+                      You have <span className="font-bold">{remainingOrders}</span> order{remainingOrders !== 1 ? 's' : ''} remaining today.
+                    </span>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
+
             <Button
               className="w-full h-12 text-base font-bold shadow-premium hover:shadow-premium-hover hover:-translate-y-0.5 transition-all"
               size="lg"
               onClick={() => navigate('/checkout')}
+              disabled={!userIsPremium && remainingOrders === 0}
             >
               Proceed to Checkout
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
+
+            {!userIsPremium && remainingOrders === 0 && (
+              <Button
+                variant="outline"
+                className="w-full border-primary text-primary hover:bg-primary/10"
+                onClick={() => navigate('/profile')}
+              >
+                <Crown className="mr-2 h-4 w-4" />
+                Upgrade to Premium
+              </Button>
+            )}
 
             <Button variant="outline" className="w-full" onClick={() => navigate('/deals')}>
               Continue Shopping

@@ -59,6 +59,22 @@ const Checkout = () => {
       return;
     }
 
+    // Check daily order limit for non-premium users
+    if (!userIsPremium) {
+      const today = new Date().toISOString().split('T')[0];
+      const lastDate = user.lastOrderDate;
+      const dailyOrderCount = lastDate === today ? (user.dailyOrdersPlacedToday || 0) : 0;
+
+      if (dailyOrderCount >= 3) {
+        toast({
+          title: 'Daily Order Limit Reached',
+          description: 'Free users can place up to 3 orders per day. Upgrade to Premium for unlimited orders!',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
     setIsProcessing(true);
 
     // Simulate payment processing

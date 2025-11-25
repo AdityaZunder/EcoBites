@@ -27,8 +27,8 @@ const MOCK_USERS = {
     isPriority: false,
     isPremium: false,
     premiumPlan: null,
-    dailyItemsAddedToday: 0,
-    lastItemAddedDate: new Date().toISOString().split('T')[0],
+    dailyOrdersPlacedToday: 0,
+    lastOrderDate: new Date().toISOString().split('T')[0],
     createdAt: new Date().toISOString(),
   },
   'restaurant@demo.com': {

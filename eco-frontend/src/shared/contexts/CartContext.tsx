@@ -40,54 +40,32 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('ecogrubs_cart', JSON.stringify(items));
   }, [items]);
 
-  // Track daily items added
-  // TODO: Move this to backend when integrating real API
-  const trackDailyItem = () => {
-    if (!user) return;
-
-    const today = new Date().toISOString().split('T')[0];
-    const lastDate = user.lastItemAddedDate;
-
-    if (lastDate !== today) {
-      // Reset count for new day
-      updateProfile({
-        dailyItemsAddedToday: 1,
-        lastItemAddedDate: today,
-      });
-    } else {
-      // Increment count for today
-      updateProfile({
-        dailyItemsAddedToday: (user.dailyItemsAddedToday || 0) + 1,
-      });
-    }
-  };
-
-  const getDailyItemsCount = (): number => {
+  const getDailyOrdersCount = (): number => {
     if (!user) return 0;
 
     const today = new Date().toISOString().split('T')[0];
-    const lastDate = user.lastItemAddedDate;
+    const lastDate = user.lastOrderDate;
 
     if (lastDate !== today) {
       return 0; // New day, count resets
     }
 
-    return user.dailyItemsAddedToday || 0;
+    return user.dailyOrdersPlacedToday || 0;
   };
 
   const canAddMoreItems = (): boolean => {
     if (!user) return true; // Guest users can add (will be prompted to login)
     if (isPremiumActive(user)) return true; // Premium users have no limit
 
-    const currentCount = getDailyItemsCount();
+    const currentCount = getDailyOrdersCount();
     return currentCount < DAILY_ITEM_LIMIT;
   };
 
   const addItem = (listing: Listing): boolean => {
-    // Check if user can add more items
+    // Check if item already exists in cart
     const existing = items.find((item) => item.id === listing.id);
 
-    // If item already exists in cart, we can increase quantity without checking limit
+    // If item already exists in cart, we can increase quantity
     if (existing) {
       setItems((prev) =>
         prev.map((item) =>
@@ -99,16 +77,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     }
 
-    // New item - check daily limit for non-premium users
-    if (!canAddMoreItems()) {
-      return false; // Limit reached
-    }
-
-    // Add new item to cart
+    // Add new item to cart - no daily limit check needed
+    // Limit is enforced at checkout, not when adding to cart
     setItems((prev) => [...prev, { ...listing, quantity: 1 }]);
-
-    // Track this as a new daily item
-    trackDailyItem();
 
     return true;
   };
@@ -139,7 +110,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     0
   );
 
-  const dailyItemsCount = getDailyItemsCount();
+  const dailyItemsCount = getDailyOrdersCount();
   const dailyItemLimit = isPremiumActive(user) ? Infinity : DAILY_ITEM_LIMIT;
 
   return (

@@ -19,7 +19,7 @@ interface OrderContextType {
 const OrderContext = createContext<OrderContextType | undefined>(undefined);
 
 export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { user } = useAuth();
+    const { user, updateProfile } = useAuth();
     const [orders, setOrders] = useState<Order[]>([]);
 
     // Load orders from localStorage on mount or when user changes
@@ -53,6 +53,25 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const addOrder = (order: Order) => {
         // TODO: Replace with API call to backend
         setOrders(prev => [order, ...prev]); // Add to beginning for chronological order
+
+        // Track daily order count for free users
+        if (user) {
+            const today = new Date().toISOString().split('T')[0];
+            const lastDate = user.lastOrderDate;
+
+            if (lastDate !== today) {
+                // Reset count for new day
+                updateProfile({
+                    dailyOrdersPlacedToday: 1,
+                    lastOrderDate: today,
+                });
+            } else {
+                // Increment count for today
+                updateProfile({
+                    dailyOrdersPlacedToday: (user.dailyOrdersPlacedToday || 0) + 1,
+                });
+            }
+        }
     };
 
     const getOrderHistory = () => {

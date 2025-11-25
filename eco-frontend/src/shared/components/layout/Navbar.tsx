@@ -2,7 +2,7 @@ import { Button } from "@/shared/components/ui/button";
 import { ThemeToggle } from "@/shared/components/ThemeToggle";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { Link, useLocation } from "react-router-dom";
-import { Leaf, Menu, ShoppingCart, User, Crown } from "lucide-react";
+import { Leaf, Menu, ShoppingCart, User, Crown, Bookmark } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -95,16 +95,23 @@ export function Navbar() {
                         <ThemeToggle />
 
                         {user?.role === 'user' && (
-                            <Link to="/cart">
-                                <Button variant="ghost" size="icon" className="relative">
-                                    <ShoppingCart className="h-5 w-5" />
-                                    {cartCount > 0 && (
-                                        <Badge className="absolute -right-1 -top-1 h-5 w-5 justify-center rounded-full p-0 text-[10px]">
-                                            {cartCount}
-                                        </Badge>
-                                    )}
-                                </Button>
-                            </Link>
+                            <>
+                                <Link to="/bookmarks">
+                                    <Button variant="ghost" size="icon">
+                                        <Bookmark className="h-5 w-5" />
+                                    </Button>
+                                </Link>
+                                <Link to="/cart">
+                                    <Button variant="ghost" size="icon" className="relative">
+                                        <ShoppingCart className="h-5 w-5" />
+                                        {cartCount > 0 && (
+                                            <Badge className="absolute -right-1 -top-1 h-5 w-5 justify-center rounded-full p-0 text-[10px]">
+                                                {cartCount}
+                                            </Badge>
+                                        )}
+                                    </Button>
+                                </Link>
+                            </>
                         )}
 
                         {user ? (
@@ -147,9 +154,6 @@ export function Navbar() {
                                             )}
                                         </>
                                     )}
-                                    <DropdownMenuItem asChild>
-                                        <Link to="/bookmarks">Bookmarks</Link>
-                                    </DropdownMenuItem>
                                     <DropdownMenuItem asChild>
                                         <Link to="/notifications">Notifications</Link>
                                     </DropdownMenuItem>

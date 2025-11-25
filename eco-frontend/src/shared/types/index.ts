@@ -12,10 +12,9 @@ export interface User {
   isPremium?: boolean;
   premiumPlan?: 'monthly' | 'annual' | null;
   premiumExpiresAt?: string;
-  // Daily item limit tracking (TODO: Move to backend)
-  dailyItemsAddedToday?: number;
-  dailyPriorityItemsAddedToday?: number;
-  lastItemAddedDate?: string;
+  // Daily order limit tracking (TODO: Move to backend)
+  dailyOrdersPlacedToday?: number;
+  lastOrderDate?: string;
   createdAt: string;
 }
 
