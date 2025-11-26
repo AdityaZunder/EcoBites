@@ -77,6 +77,8 @@ export interface Order {
   totalPrice: number;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   pickupTime?: string;
+  deliveryAddress?: string;
+  specialInstructions?: string;
   restaurantIds: string[];
   createdAt: string;
   // Legacy/Mock fields

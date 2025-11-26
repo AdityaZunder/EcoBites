@@ -9,6 +9,7 @@ import { Card } from '@/shared/components/ui/card';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import { mockRestaurants } from '@/shared/lib/mockData';
 import { Restaurant } from '@/shared/types';
+import { getRestaurants } from '@/shared/services/api';
 import { Leaf, ArrowLeft, Upload } from 'lucide-react';
 import { useToast } from '@/shared/hooks/use-toast';
 import { PlaceholderMap } from '@/shared/components/common/PlaceholderMap';
@@ -31,16 +32,31 @@ const RestaurantProfile = () => {
       return;
     }
 
-    const rest = mockRestaurants.find(r => r.userId === user.id);
-    if (rest) {
-      setRestaurant(rest);
-      setFormData({
-        name: rest.name,
-        description: rest.description,
-        address: rest.address,
-        phone: rest.phone,
-      });
-    }
+    const fetchProfileData = async () => {
+      try {
+        const restaurants = await getRestaurants();
+        const rest = restaurants.find((r: Restaurant) => r.userId === user.id);
+
+        if (rest) {
+          setRestaurant(rest);
+          setFormData({
+            name: rest.name,
+            description: rest.description,
+            address: rest.address,
+            phone: rest.phone,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch profile data:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load profile data',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    fetchProfileData();
   }, [user, navigate]);
 
   const handleSubmit = (e: React.FormEvent) => {

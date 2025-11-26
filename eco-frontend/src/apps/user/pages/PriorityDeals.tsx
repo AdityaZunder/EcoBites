@@ -5,7 +5,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { ListingCard } from '@/apps/user/components/ListingCard';
-import { mockListings } from '@/shared/lib/mockData';
+import { mockListings, mockRestaurants } from '@/shared/lib/mockData';
 import { Listing } from '@/shared/types';
 import { isPremiumActive } from '@/shared/lib/premiumUtils';
 import { Crown, ArrowLeft } from 'lucide-react';
@@ -32,9 +32,12 @@ const PriorityDeals = () => {
         }
 
         // Filter for priority listings
-        const priority = mockListings.filter(
-            l => l.isPriorityAccess && l.status === 'active' && new Date(l.expiresAt) > new Date()
-        );
+        const priority = mockListings
+            .filter(l => l.isPriorityAccess && l.status === 'active' && new Date(l.expiresAt) > new Date())
+            .map(l => ({
+                ...l,
+                restaurant: mockRestaurants.find(r => r.id === l.restaurantId)
+            }));
         setPriorityListings(priority);
     }, [user, navigate]);
 

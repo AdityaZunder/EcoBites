@@ -8,6 +8,7 @@ import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import { Countdown } from '@/shared/components/Countdown';
 import { mockListings, mockRestaurants, mockOrders } from '@/shared/lib/mockData';
 import { Listing, Restaurant, Order } from '@/shared/types';
+import { getListings, getRestaurantById } from '@/shared/services/api';
 import {
   Leaf,
   Plus,
@@ -48,20 +49,38 @@ const RestaurantDashboard = () => {
       return;
     }
 
-    // Find restaurant data for this user
-    const rest = mockRestaurants.find(r => r.userId === user.id);
-    setRestaurant(rest || null);
+    // Fetch listings from backend
+    const fetchDashboardData = async () => {
+      try {
+        // TODO: Get real restaurant ID from backend based on user
+        // For now, using the seeded restaurant ID
+        const restaurantId = 'restaurant-1';
 
-    if (rest) {
-      // Get listings for this restaurant
-      const restListings = mockListings.filter(l => l.restaurantId === rest.id);
-      setListings(restListings);
+        // Fetch restaurant details from backend
+        const rest = await getRestaurantById(restaurantId);
+        setRestaurant(rest || null);
 
-      // Get orders for this restaurant's listings
-      const listingIds = restListings.map(l => l.id);
-      const restOrders = mockOrders.filter(o => listingIds.includes(o.listingId));
-      setOrders(restOrders);
-    }
+        if (rest) {
+          const fetchedListings = await getListings(rest.id);
+          setListings(fetchedListings);
+
+          // Mock orders for now as we haven't implemented order fetching fully
+          // We can eventually replace this with api.getOrders(rest.id)
+          const listingIds = fetchedListings.map((l: Listing) => l.id);
+          const restOrders = mockOrders.filter(o => listingIds.includes(o.listingId));
+          setOrders(restOrders);
+        }
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load dashboard data',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    fetchDashboardData();
   }, [user, navigate]);
 
   const handleLogout = () => {
@@ -310,9 +329,11 @@ const ListingRow = ({
 
       {/* Actions */}
       <div className="flex sm:flex-row flex-col gap-2 shrink-0">
+        {/* TODO: Implement edit listing feature
         <Button variant="outline" size="icon" onClick={onEdit} className="h-9 w-9 sm:h-10 sm:w-10">
           <Edit className="h-4 w-4" />
         </Button>
+        */}
         <Button variant="outline" size="icon" onClick={onDelete} className="h-9 w-9 sm:h-10 sm:w-10">
           <Trash2 className="h-4 w-4" />
         </Button>

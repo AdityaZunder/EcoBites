@@ -8,14 +8,18 @@ import { Badge } from '@/shared/components/ui/badge';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Card } from '@/shared/components/ui/card';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
-import { Leaf, ArrowLeft, Upload } from 'lucide-react';
+import { Leaf, ArrowLeft, Upload, Loader2 } from 'lucide-react';
 import { useToast } from '@/shared/hooks/use-toast';
 import { Switch } from '@/shared/components/ui/switch';
+import { uploadImage, createListing } from '@/shared/services/api';
 
 const CreateListing = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -27,18 +31,58 @@ const CreateListing = () => {
     isPriorityAccess: false,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
 
-    // Mock submission
-    toast({
-      title: 'Listing Created! 🎉',
-      description: 'Your listing is now live and visible to customers',
-    });
+    setIsSubmitting(true);
 
-    setTimeout(() => {
-      navigate('/restaurant/dashboard');
-    }, 1500);
+    try {
+      let imageUrl = '';
+      if (selectedFile) {
+        imageUrl = await uploadImage(selectedFile);
+      }
+
+      // TODO: Get real restaurant ID from user context or backend
+      // For now, using a placeholder or user.id if user is restaurant
+      const restaurantId = 'restaurant-1'; // Replace with actual logic
+
+      await createListing({
+        restaurantId: restaurantId, // This needs to be dynamic
+        ...formData,
+        imageUrl,
+        originalPrice: parseFloat(formData.originalPrice),
+        discountedPrice: parseFloat(formData.discountedPrice),
+        quantity: parseInt(formData.quantity),
+        expiresInHours: parseInt(formData.expiresInHours),
+      });
+
+      toast({
+        title: 'Listing Created! 🎉',
+        description: 'Your listing is now live and visible to customers',
+      });
+
+      setTimeout(() => {
+        navigate('/restaurant/dashboard');
+      }, 1500);
+    } catch (error) {
+      console.error('Failed to create listing:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create listing. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (field: string, value: string | boolean) => {
@@ -82,14 +126,26 @@ const CreateListing = () => {
             {/* Image Upload */}
             <div className="space-y-2">
               <Label>Item Photo</Label>
-              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer">
-                <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground mb-2">
-                  Click to upload or drag and drop
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  PNG, JPG up to 5MB (Mock upload - image not saved)
-                </p>
+              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer relative">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                {previewUrl ? (
+                  <img src={previewUrl} alt="Preview" className="max-h-48 mx-auto rounded-md" />
+                ) : (
+                  <>
+                    <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Click to upload or drag and drop
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      PNG, JPG up to 5MB
+                    </p>
+                  </>
+                )}
               </div>
             </div>
 
@@ -230,13 +286,21 @@ const CreateListing = () => {
 
             {/* Submit */}
             <div className="flex gap-4 pt-4">
-              <Button type="submit" className="flex-1">
-                Create Listing
+              <Button type="submit" className="flex-1" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Listing'
+                )}
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => navigate('/restaurant/dashboard')}
+                disabled={isSubmitting}
               >
                 Cancel
               </Button>

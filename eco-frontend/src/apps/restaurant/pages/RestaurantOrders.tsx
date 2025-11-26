@@ -9,9 +9,12 @@ import { mockOrders, mockListings, mockRestaurants } from '@/shared/lib/mockData
 import { Order, Listing } from '@/shared/types';
 import { Leaf, ArrowLeft, Package } from 'lucide-react';
 import { useToast } from '@/shared/hooks/use-toast';
+import { getRestaurants } from '@/shared/services/api';
 
 type OrderWithListing = Order & {
   listing?: Listing;
+  userName?: string;
+  userEmail?: string;
 };
 
 const RestaurantOrders = () => {
@@ -26,22 +29,32 @@ const RestaurantOrders = () => {
       return;
     }
 
-    const restaurant = mockRestaurants.find(r => r.userId === user.id);
-    if (restaurant) {
-      const restaurantListingIds = mockListings
-        .filter(l => l.restaurantId === restaurant.id)
-        .map(l => l.id);
+    const fetchOrders = async () => {
+      try {
+        // In a real app, the restaurant ID would be associated with the user
+        // Fetch all restaurants to find the one owned by this user
+        const restaurants = await getRestaurants();
+        const restaurant = restaurants.find((r: any) => r.userId === user.id);
 
-      const restaurantOrders = mockOrders
-        .filter(o => restaurantListingIds.includes(o.listingId))
-        .map(o => ({
-          ...o,
-          listing: mockListings.find(l => l.id === o.listingId),
-        }));
+        if (restaurant) {
+          const response = await fetch(`http://localhost:3000/api/orders/restaurant/${restaurant.id}`);
+          if (response.ok) {
+            const data = await response.json();
+            setOrders(data);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch restaurant orders:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load orders',
+          variant: 'destructive',
+        });
+      }
+    };
 
-      setOrders(restaurantOrders);
-    }
-  }, [user, navigate]);
+    fetchOrders();
+  }, [user, navigate, toast]);
 
   const updateOrderStatus = (orderId: string, status: Order['status']) => {
     setOrders(prev =>
@@ -93,6 +106,11 @@ const RestaurantOrders = () => {
                     <p className="text-sm text-muted-foreground">
                       {new Date(order.createdAt).toLocaleString()}
                     </p>
+                    {order.userName && (
+                      <p className="text-sm font-medium text-primary mt-1">
+                        Customer: {order.userName}
+                      </p>
+                    )}
                   </div>
                   <Badge
                     variant={
@@ -105,16 +123,24 @@ const RestaurantOrders = () => {
                   </Badge>
                 </div>
 
-                <div className="mb-4">
-                  <p className="text-sm text-muted-foreground mb-1">Item:</p>
-                  <p className="font-medium">{order.listing?.title}</p>
+                <div className="mb-4 space-y-2">
+                  <p className="text-sm text-muted-foreground mb-1">Items:</p>
+                  {order.items.map((item: any) => (
+                    <div key={item.id} className="flex justify-between items-center">
+                      <span className="font-medium">{item.title}</span>
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">Qty: </span>
+                        <span className="font-medium">{item.quantity}</span>
+                        <span className="text-muted-foreground ml-2">Price: </span>
+                        <span className="font-medium">${item.priceAtPurchase.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between pt-4 border-t">
                   <div className="text-sm">
-                    <span className="text-muted-foreground">Quantity: </span>
-                    <span className="font-medium">{order.quantity}</span>
-                    <span className="text-muted-foreground ml-4">Total: </span>
+                    <span className="text-muted-foreground">Total Order Value: </span>
                     <span className="font-bold text-primary">${order.totalPrice.toFixed(2)}</span>
                   </div>
 

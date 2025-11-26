@@ -48,14 +48,21 @@ const ListingDetail = () => {
   const handleOrder = () => {
     if (!listing || !restaurant) return;
 
-    addItem({ ...listing, restaurant });
+    const success = addItem({ ...listing, restaurant });
 
-    toast({
-      title: 'Added to Cart! 🛒',
-      description: `${listing.title} has been added to your cart.`,
-    });
-
-    navigate('/cart');
+    if (success) {
+      toast({
+        title: 'Added to Cart! 🛒',
+        description: `${listing.title} has been added to your cart.`,
+      });
+      navigate('/cart');
+    } else {
+      toast({
+        title: 'Limit Reached',
+        description: `You cannot add more of this item. Maximum available quantity reached.`,
+        variant: 'destructive',
+      });
+    }
   };
 
   if (loading) {

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Listing, Restaurant } from '@/shared/types';
-import { mockListings, mockRestaurants } from '@/shared/lib/mockData';
+import { getListings, getRestaurants } from '@/shared/services/api';
 
 interface MarketplaceContextType {
     listings: Listing[];
@@ -16,18 +16,30 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const fetchData = () => {
+    const fetchData = async () => {
         setIsLoading(true);
-        // Simulate API call
-        setTimeout(() => {
+        try {
+            const [fetchedListings, fetchedRestaurants] = await Promise.all([
+                getListings(),
+                getRestaurants()
+            ]);
+
             // Load listings with restaurant data
-            const listingsWithRestaurant = mockListings.map(listing => ({
+            const listingsWithRestaurant = fetchedListings.map((listing: Listing) => ({
                 ...listing,
-                restaurant: mockRestaurants.find(r => r.id === listing.restaurantId),
+                restaurant: fetchedRestaurants.find((r: Restaurant) => r.id === listing.restaurantId),
             }));
 
+            // Filter out expired and sold out listings
+            const now = new Date();
+            const activeListings = listingsWithRestaurant.filter((listing: Listing) => {
+                const isNotExpired = new Date(listing.expiresAt) > now;
+                const isAvailable = listing.status === 'active' && listing.remainingQuantity > 0;
+                return isNotExpired && isAvailable;
+            });
+
             // Sort by expiry time (soonest first), then by discount
-            const sorted = [...listingsWithRestaurant].sort((a, b) => {
+            const sorted = [...activeListings].sort((a: Listing, b: Listing) => {
                 const timeA = new Date(a.expiresAt).getTime();
                 const timeB = new Date(b.expiresAt).getTime();
                 if (timeA !== timeB) return timeA - timeB;
@@ -38,9 +50,12 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
             });
 
             setListings(sorted);
-            setRestaurants(mockRestaurants);
+            setRestaurants(fetchedRestaurants);
+        } catch (error) {
+            console.error('Failed to fetch marketplace data:', error);
+        } finally {
             setIsLoading(false);
-        }, 800);
+        }
     };
 
     useEffect(() => {

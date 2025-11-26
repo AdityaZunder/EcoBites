@@ -104,7 +104,8 @@ const Cart = () => {
                         variant="ghost"
                         size="icon"
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="h-8 w-8 rounded-md hover:bg-background shadow-sm"
+                        disabled={item.quantity >= item.remainingQuantity}
+                        className="h-8 w-8 rounded-md hover:bg-background shadow-sm disabled:opacity-50"
                       >
                         <Plus className="h-3 w-3" />
                       </Button>
@@ -118,6 +119,11 @@ const Cart = () => {
                         ${(item.discountedPrice * item.quantity).toFixed(2)}
                       </div>
                     </div>
+                    {item.quantity >= item.remainingQuantity && (
+                      <div className="absolute bottom-0 right-0 text-[10px] text-amber-600 font-medium bg-amber-50 px-2 py-0.5 rounded-full">
+                        Max available
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -207,7 +213,7 @@ const Cart = () => {
           </Card>
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 

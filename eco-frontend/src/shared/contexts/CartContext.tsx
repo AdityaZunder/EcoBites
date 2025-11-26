@@ -67,6 +67,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // If item already exists in cart, we can increase quantity
     if (existing) {
+      if (existing.quantity >= listing.remainingQuantity) {
+        return false; // Limit reached
+      }
       setItems((prev) =>
         prev.map((item) =>
           item.id === listing.id
@@ -79,6 +82,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Add new item to cart - no daily limit check needed
     // Limit is enforced at checkout, not when adding to cart
+    if (listing.remainingQuantity < 1) {
+      return false; // Cannot add sold out item
+    }
     setItems((prev) => [...prev, { ...listing, quantity: 1 }]);
 
     return true;
@@ -93,6 +99,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       removeItem(listingId);
       return;
     }
+
+    const item = items.find(i => i.id === listingId);
+    if (item && quantity > item.remainingQuantity) {
+      // Cannot exceed remaining quantity
+      return;
+    }
+
     setItems((prev) =>
       prev.map((item) =>
         item.id === listingId ? { ...item, quantity } : item

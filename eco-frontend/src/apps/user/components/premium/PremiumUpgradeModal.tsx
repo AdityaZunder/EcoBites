@@ -43,11 +43,16 @@ export const PremiumUpgradeModal = ({ open, onClose }: PremiumUpgradeModalProps)
         }}>
             <DialogContent className={showPayment ? "max-w-2xl max-h-[90vh] overflow-y-auto" : "max-w-4xl max-h-[90vh] overflow-y-auto"}>
                 {showPayment && selectedPlan ? (
-                    <MockPaymentScreen
-                        plan={selectedPlan}
-                        onBack={handleBack}
-                        onSuccess={handlePaymentSuccess}
-                    />
+                    <>
+                        <DialogHeader className="sr-only">
+                            <DialogTitle>Complete Payment</DialogTitle>
+                        </DialogHeader>
+                        <MockPaymentScreen
+                            plan={selectedPlan}
+                            onBack={handleBack}
+                            onSuccess={handlePaymentSuccess}
+                        />
+                    </>
                 ) : (
                     <>
                         <DialogHeader>

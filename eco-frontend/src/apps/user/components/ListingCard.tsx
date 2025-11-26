@@ -13,6 +13,7 @@ import { useState } from 'react';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { isPremiumActive } from '@/shared/lib/premiumUtils';
 import { usePremiumModal } from '@/shared/contexts/PremiumModalContext';
+import { ListingDetailModal } from '@/apps/user/components/ListingDetailModal';
 
 interface ListingCardProps {
   listing: Listing;
@@ -33,6 +34,7 @@ export const ListingCard = ({
   const { addItem, dailyItemsCount, dailyItemLimit } = useCart();
   const { toast } = useToast();
   const [showLimitDialog, setShowLimitDialog] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const { openModal } = usePremiumModal();
 
   const discountPercent = Math.round(
@@ -68,10 +70,13 @@ export const ListingCard = ({
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     if (isLocked) {
-      e.preventDefault();
-      e.stopPropagation();
       openModal();
+    } else {
+      setShowDetailModal(true);
     }
   };
 
@@ -83,11 +88,11 @@ export const ListingCard = ({
           'group relative overflow-hidden border-border/50 bg-card transition-all duration-300',
           !isLocked && 'hover:shadow-premium-hover hover:-translate-y-1',
           isExpired && 'opacity-75 grayscale',
-          isLocked && 'cursor-pointer',
+          'cursor-pointer',
           className
         )}
       >
-        <Link to={isLocked ? '#' : `/listing/${listing.id}`} className="block" onClick={isLocked ? (e) => e.preventDefault() : undefined}>
+        <div className="block">
           <div className="relative aspect-[4/3] overflow-hidden">
             {listing.imageUrl ? (
               <img
@@ -140,7 +145,7 @@ export const ListingCard = ({
               </div>
             )}
           </div>
-        </Link>
+        </div>
 
         <div className={cn("p-5 space-y-4", isLocked && "flex flex-col items-center justify-center text-center py-8")}>
           {!isLocked ? (
@@ -153,14 +158,14 @@ export const ListingCard = ({
                   </div>
                 )}
 
-                <Link to={`/listing/${listing.id}`}>
+                <div>
                   <h3 className="font-bold text-xl leading-tight group-hover:text-primary transition-colors line-clamp-1">
                     {listing.title}
                   </h3>
-                </Link>
+                </div>
 
                 <div className="flex flex-wrap gap-1.5 pt-1">
-                  {listing.tags.slice(0, 3).map(tag => (
+                  {(listing.tags || []).slice(0, 3).map(tag => (
                     <Badge key={tag} variant="outline" className="text-xs font-normal bg-muted/50 border-transparent">
                       {tag}
                     </Badge>
@@ -191,6 +196,7 @@ export const ListingCard = ({
                       size="icon"
                       onClick={(e) => {
                         e.preventDefault();
+                        e.stopPropagation();
                         onBookmark();
                       }}
                       className={cn(
@@ -229,6 +235,13 @@ export const ListingCard = ({
           onClose={() => setShowLimitDialog(false)}
           currentCount={dailyItemsCount}
           limit={dailyItemLimit}
+        />
+
+        <ListingDetailModal
+          listing={listing}
+          restaurant={restaurant || null}
+          isOpen={showDetailModal}
+          onClose={() => setShowDetailModal(false)}
         />
       </Card>
     </>

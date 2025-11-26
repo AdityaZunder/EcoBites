@@ -15,11 +15,13 @@ import { createOrder } from '@/shared/lib/orderUtils';
 import { calculateServiceFee, isPremiumActive } from '@/shared/lib/premiumUtils';
 import { Badge } from '@/shared/components/ui/badge';
 import { PlaceholderMap } from '@/shared/components/common/PlaceholderMap';
+import { useMarketplace } from '@/shared/contexts/MarketplaceContext';
 
 const Checkout = () => {
   const { items, totalPrice, clearCart } = useCart();
   const { addOrder } = useOrders();
   const { user } = useAuth();
+  const { refreshListings } = useMarketplace();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -78,18 +80,52 @@ const Checkout = () => {
 
     setIsProcessing(true);
 
-    // Simulate payment processing
-    // TODO: Replace with real payment gateway integration
-    setTimeout(() => {
-      // Create order using utility function
-      const order = createOrder(items, user.id, serviceFee);
-      order.pickupTime = formData.pickupTime;
+    try {
+      // Combine today's date with selected time
+      const today = new Date();
+      const [hours, minutes] = formData.pickupTime.split(':');
+      const pickupDateTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), parseInt(hours), parseInt(minutes));
 
-      // Add order to history
+      // Prepare order data
+      const orderData = {
+        userId: user.id,
+        items: items.map(item => ({
+          listing: item,
+          quantity: item.quantity,
+          priceAtPurchase: item.discountedPrice
+        })),
+        subtotal: totalPrice,
+        serviceFee: serviceFee,
+        savings: items.reduce((acc, item) => acc + (item.originalPrice - item.discountedPrice) * item.quantity, 0),
+        totalPrice: totalPrice + serviceFee,
+        restaurantIds: Array.from(new Set(items.map(item => item.restaurantId))),
+        deliveryAddress: `${formData.address}, ${formData.city} ${formData.zipCode}`,
+        pickupTime: pickupDateTime.toISOString(),
+        specialInstructions: formData.specialInstructions
+      };
+
+      // Send order to backend
+      const response = await fetch('http://localhost:3000/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to place order');
+      }
+
+      const order = await response.json();
+
+      // Add order to local context (optional, or just rely on refetch)
       addOrder(order);
 
       clearCart();
-      setIsProcessing(false);
+
+      // Refresh marketplace to remove sold listings
+      refreshListings();
 
       toast({
         title: 'Order Placed Successfully! 🎉',
@@ -97,7 +133,16 @@ const Checkout = () => {
       });
 
       navigate(`/order-confirmation/${order.id}`);
-    }, 2000);
+    } catch (error) {
+      console.error('Order placement error:', error);
+      toast({
+        title: 'Order Failed',
+        description: 'There was an error placing your order. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (items.length === 0) {
@@ -207,11 +252,11 @@ const Checkout = () => {
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="pickupTime">Preferred Pickup Time</Label>
+                  <Label htmlFor="pickupTime">Preferred Pickup Time (Today)</Label>
                   <Input
                     id="pickupTime"
                     name="pickupTime"
-                    type="datetime-local"
+                    type="time"
                     required
                     value={formData.pickupTime}
                     onChange={handleInputChange}

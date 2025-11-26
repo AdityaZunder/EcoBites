@@ -1,40 +1,44 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/shared/contexts/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { ListingCard } from '@/apps/user/components/ListingCard';
-import { mockListings, mockRestaurants } from '@/shared/lib/mockData';
+import { useMarketplace } from '@/shared/contexts/MarketplaceContext';
 import { Listing } from '@/shared/types';
 import { ArrowLeft, Bookmark } from 'lucide-react';
 
 const Bookmarks = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { listings } = useMarketplace();
   const [bookmarkedListings, setBookmarkedListings] = useState<Listing[]>([]);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
 
+  // Reload bookmarks whenever the page is accessed
   useEffect(() => {
     if (!user) {
       navigate('/login');
       return;
     }
 
-    const stored = localStorage.getItem('ecogrubs_bookmarks');
-    if (stored) {
-      const ids = new Set<string>(JSON.parse(stored) as string[]);
-      setBookmarkedIds(ids);
+    const loadBookmarks = () => {
+      const stored = localStorage.getItem('ecogrubs_bookmarks');
+      if (stored) {
+        const ids = new Set<string>(JSON.parse(stored) as string[]);
+        setBookmarkedIds(ids);
 
-      const listings = mockListings
-        .filter(l => ids.has(l.id))
-        .map(listing => ({
-          ...listing,
-          restaurant: mockRestaurants.find(r => r.id === listing.restaurantId),
-        }));
+        const bookmarked = listings.filter(l => ids.has(l.id));
+        setBookmarkedListings(bookmarked);
+      } else {
+        setBookmarkedIds(new Set());
+        setBookmarkedListings([]);
+      }
+    };
 
-      setBookmarkedListings(listings);
-    }
-  }, [user, navigate]);
+    loadBookmarks();
+  }, [user, navigate, location.pathname, listings]); // Re-run when pathname changes
 
   const toggleBookmark = (listingId: string) => {
     const newBookmarks = new Set(bookmarkedIds);

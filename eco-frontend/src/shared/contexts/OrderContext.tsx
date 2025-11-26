@@ -22,37 +22,40 @@ export const OrderProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const { user, updateProfile } = useAuth();
     const [orders, setOrders] = useState<Order[]>([]);
 
-    // Load orders from localStorage on mount or when user changes
+    // Load orders from backend on mount or when user changes
     useEffect(() => {
-        if (user) {
-            // TODO: Replace with API call to backend
-            const storedOrders = localStorage.getItem(`ecogrubs_orders_${user.id}`);
-            if (storedOrders) {
+        const fetchOrders = async () => {
+            if (user) {
                 try {
-                    setOrders(JSON.parse(storedOrders));
+                    const response = await fetch(`http://localhost:3000/api/orders/user/${user.id}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        // Ensure numeric values are numbers
+                        const parsedOrders = data.map((order: any) => ({
+                            ...order,
+                            subtotal: parseFloat(order.subtotal),
+                            serviceFee: parseFloat(order.service_fee),
+                            savings: parseFloat(order.savings),
+                            totalPrice: parseFloat(order.total_price)
+                        }));
+                        setOrders(parsedOrders);
+                    }
                 } catch (error) {
-                    console.error('Failed to parse stored orders:', error);
-                    setOrders([]);
+                    console.error('Failed to fetch orders:', error);
                 }
             } else {
                 setOrders([]);
             }
-        } else {
-            setOrders([]);
-        }
+        };
+
+        fetchOrders();
     }, [user]);
 
-    // Save orders to localStorage whenever they change
-    useEffect(() => {
-        if (user && orders.length > 0) {
-            // TODO: Replace with API call to backend
-            localStorage.setItem(`ecogrubs_orders_${user.id}`, JSON.stringify(orders));
-        }
-    }, [orders, user]);
+    // Save orders to localStorage whenever they change - REMOVED
+    // We now rely on backend
 
     const addOrder = (order: Order) => {
-        // TODO: Replace with API call to backend
-        setOrders(prev => [order, ...prev]); // Add to beginning for chronological order
+        setOrders(prev => [order, ...prev]); // Optimistic update
 
         // Track daily order count for free users
         if (user) {
