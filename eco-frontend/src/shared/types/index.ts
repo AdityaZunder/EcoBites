@@ -39,6 +39,7 @@ export interface Restaurant {
   logo?: string;
   rating: number;
   totalOrders: number;
+  earnings?: number;
   category: string;
   createdAt: string;
 }

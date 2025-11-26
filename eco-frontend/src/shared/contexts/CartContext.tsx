@@ -4,8 +4,8 @@ import { useAuth } from './AuthContext';
 import { isPremiumActive } from '@/shared/lib/premiumUtils';
 
 /**
- * CartContext with daily item limit for non-premium users
- * TODO: Move daily item tracking to backend when integrating real API
+ * CartContext provides cart management functionality.
+ * It handles adding/removing items, updating quantities, and enforcing daily limits for non-premium users.
  */
 
 interface CartItem extends Listing {
@@ -27,7 +27,7 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const DAILY_ITEM_LIMIT = 3; // For non-premium users
+const DAILY_ITEM_LIMIT = 3;
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, updateProfile } = useAuth();
@@ -47,28 +47,26 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const lastDate = user.lastOrderDate;
 
     if (lastDate !== today) {
-      return 0; // New day, count resets
+      return 0;
     }
 
     return user.dailyOrdersPlacedToday || 0;
   };
 
   const canAddMoreItems = (): boolean => {
-    if (!user) return true; // Guest users can add (will be prompted to login)
-    if (isPremiumActive(user)) return true; // Premium users have no limit
+    if (!user) return true;
+    if (isPremiumActive(user)) return true;
 
     const currentCount = getDailyOrdersCount();
     return currentCount < DAILY_ITEM_LIMIT;
   };
 
   const addItem = (listing: Listing): boolean => {
-    // Check if item already exists in cart
     const existing = items.find((item) => item.id === listing.id);
 
-    // If item already exists in cart, we can increase quantity
     if (existing) {
       if (existing.quantity >= listing.remainingQuantity) {
-        return false; // Limit reached
+        return false;
       }
       setItems((prev) =>
         prev.map((item) =>
@@ -80,10 +78,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return true;
     }
 
-    // Add new item to cart - no daily limit check needed
-    // Limit is enforced at checkout, not when adding to cart
     if (listing.remainingQuantity < 1) {
-      return false; // Cannot add sold out item
+      return false;
     }
     setItems((prev) => [...prev, { ...listing, quantity: 1 }]);
 
@@ -102,7 +98,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const item = items.find(i => i.id === listingId);
     if (item && quantity > item.remainingQuantity) {
-      // Cannot exceed remaining quantity
       return;
     }
 

@@ -23,7 +23,7 @@ export const OrderHistoryCard = ({ order }: OrderHistoryCardProps) => {
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                             <h3 className="font-semibold truncate">{firstRestaurantName}</h3>
-                            {order.restaurantIds.length > 1 && (
+                            {order.restaurantIds?.length > 1 && (
                                 <Badge variant="secondary" className="text-xs">
                                     +{order.restaurantIds.length - 1} more
                                 </Badge>

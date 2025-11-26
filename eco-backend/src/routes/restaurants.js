@@ -17,7 +17,7 @@ const toCamelCase = (obj) => {
             let value = obj[key];
 
             // Convert numeric strings to numbers for specific fields
-            if (['original_price', 'discounted_price', 'quantity', 'remaining_quantity', 'rating', 'total_orders'].includes(key)) {
+            if (['original_price', 'discounted_price', 'quantity', 'remaining_quantity', 'rating', 'total_orders', 'earnings'].includes(key)) {
                 value = parseFloat(value);
             }
 
@@ -34,7 +34,10 @@ const toCamelCase = (obj) => {
 };
 
 module.exports = (pool) => {
-    // Get all restaurants
+    /**
+     * GET /
+     * Retrieves all restaurants.
+     */
     router.get('/', async (req, res) => {
         try {
             const result = await pool.query('SELECT * FROM restaurants');
@@ -45,7 +48,10 @@ module.exports = (pool) => {
         }
     });
 
-    // Get restaurant by ID
+    /**
+     * GET /:id
+     * Retrieves a specific restaurant by its ID.
+     */
     router.get('/:id', async (req, res) => {
         try {
             const { id } = req.params;
@@ -60,7 +66,28 @@ module.exports = (pool) => {
         }
     });
 
-    // Create restaurant
+    /**
+     * GET /user/:userId
+     * Retrieves a restaurant associated with a specific user ID.
+     */
+    router.get('/user/:userId', async (req, res) => {
+        try {
+            const { userId } = req.params;
+            const result = await pool.query('SELECT * FROM restaurants WHERE user_id = $1', [userId]);
+            if (result.rows.length === 0) {
+                return res.status(404).json({ error: 'Restaurant not found for this user' });
+            }
+            res.json(toCamelCase(result.rows[0]));
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ error: 'Server error' });
+        }
+    });
+
+    /**
+     * POST /
+     * Creates a new restaurant profile.
+     */
     router.post('/', async (req, res) => {
         try {
             const { userId, name, description, address, phone, category } = req.body;

@@ -5,11 +5,11 @@ import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
-import { mockOrders, mockListings, mockRestaurants } from '@/shared/lib/mockData';
+
 import { Order, Listing } from '@/shared/types';
 import { Leaf, ArrowLeft, Package } from 'lucide-react';
 import { useToast } from '@/shared/hooks/use-toast';
-import { getRestaurants } from '@/shared/services/api';
+import { getRestaurantByUserId, getOrdersByRestaurant, updateOrderStatus as apiUpdateOrderStatus } from '@/shared/services/api';
 
 type OrderWithListing = Order & {
   listing?: Listing;
@@ -33,15 +33,11 @@ const RestaurantOrders = () => {
       try {
         // In a real app, the restaurant ID would be associated with the user
         // Fetch all restaurants to find the one owned by this user
-        const restaurants = await getRestaurants();
-        const restaurant = restaurants.find((r: any) => r.userId === user.id);
+        const restaurant = await getRestaurantByUserId(user.id);
 
         if (restaurant) {
-          const response = await fetch(`http://localhost:3000/api/orders/restaurant/${restaurant.id}`);
-          if (response.ok) {
-            const data = await response.json();
-            setOrders(data);
-          }
+          const data = await getOrdersByRestaurant(restaurant.id);
+          setOrders(data);
         }
       } catch (error) {
         console.error('Failed to fetch restaurant orders:', error);
@@ -56,14 +52,24 @@ const RestaurantOrders = () => {
     fetchOrders();
   }, [user, navigate, toast]);
 
-  const updateOrderStatus = (orderId: string, status: Order['status']) => {
-    setOrders(prev =>
-      prev.map(o => o.id === orderId ? { ...o, status } : o)
-    );
-    toast({
-      title: 'Order Updated',
-      description: `Order status changed to ${status}`,
-    });
+  const updateOrderStatus = async (orderId: string, status: Order['status']) => {
+    try {
+      await apiUpdateOrderStatus(orderId, status);
+      setOrders(prev =>
+        prev.map(o => o.id === orderId ? { ...o, status } : o)
+      );
+      toast({
+        title: 'Order Updated',
+        description: `Order status changed to ${status}`,
+      });
+    } catch (error) {
+      console.error('Failed to update order status:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update order status',
+        variant: 'destructive',
+      });
+    }
   };
 
   if (!user) return null;

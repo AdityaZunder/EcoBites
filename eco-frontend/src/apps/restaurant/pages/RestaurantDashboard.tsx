@@ -6,9 +6,9 @@ import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { ThemeToggle } from '@/shared/components/ThemeToggle';
 import { Countdown } from '@/shared/components/Countdown';
-import { mockListings, mockRestaurants, mockOrders } from '@/shared/lib/mockData';
+import { mockListings, mockRestaurants } from '@/shared/lib/mockData';
 import { Listing, Restaurant, Order } from '@/shared/types';
-import { getListings, getRestaurantById } from '@/shared/services/api';
+import { getListings, getRestaurantByUserId, getOrdersByRestaurant } from '@/shared/services/api';
 import {
   Leaf,
   Plus,
@@ -30,6 +30,10 @@ import {
 } from '@/shared/components/ui/dropdown-menu';
 import { useToast } from '@/shared/hooks/use-toast';
 
+/**
+ * RestaurantDashboard component.
+ * Displays the main dashboard for restaurant owners, including stats, listings, and actions.
+ */
 const RestaurantDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -49,26 +53,22 @@ const RestaurantDashboard = () => {
       return;
     }
 
-    // Fetch listings from backend
     const fetchDashboardData = async () => {
       try {
-        // TODO: Get real restaurant ID from backend based on user
-        // For now, using the seeded restaurant ID
-        const restaurantId = 'restaurant-1';
-
-        // Fetch restaurant details from backend
-        const rest = await getRestaurantById(restaurantId);
+        const rest = await getRestaurantByUserId(user.id);
         setRestaurant(rest || null);
 
         if (rest) {
           const fetchedListings = await getListings(rest.id);
           setListings(fetchedListings);
 
-          // Mock orders for now as we haven't implemented order fetching fully
-          // We can eventually replace this with api.getOrders(rest.id)
-          const listingIds = fetchedListings.map((l: Listing) => l.id);
-          const restOrders = mockOrders.filter(o => listingIds.includes(o.listingId));
-          setOrders(restOrders);
+          try {
+            const fetchedOrders = await getOrdersByRestaurant(rest.id);
+            setOrders(fetchedOrders);
+          } catch (err) {
+            console.error('Failed to fetch orders:', err);
+            setOrders([]);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
@@ -105,7 +105,7 @@ const RestaurantDashboard = () => {
   }
 
   const activeListings = listings.filter(l => l.status === 'active' && new Date(l.expiresAt) > new Date());
-  const totalRevenue = orders.reduce((sum, order) => sum + order.totalPrice, 0);
+  const totalRevenue = Number(restaurant.earnings ?? orders.reduce((sum, order) => sum + order.totalPrice, 0));
   const todayOrders = orders.filter(o => {
     const orderDate = new Date(o.createdAt);
     const today = new Date();
@@ -114,7 +114,6 @@ const RestaurantDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -161,13 +160,11 @@ const RestaurantDashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {/* Welcome Section */}
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">Welcome back, {restaurant.name}! 👋</h1>
           <p className="text-sm sm:text-base text-muted-foreground">Manage your listings and track your impact</p>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid gap-4 sm:gap-6 grid-cols-2 lg:grid-cols-4 mb-6 sm:mb-8">
           <StatCard
             icon={<Package className="h-6 w-6 text-primary" />}
@@ -182,7 +179,7 @@ const RestaurantDashboard = () => {
             subtitle="Orders received today"
           />
           <StatCard
-            icon={<DollarSign className="h-6 w-6 text-secondary" />}
+            icon={<DollarSign className="h-6 w-6 text-eco" />}
             title="Total Revenue"
             value={`$${totalRevenue.toFixed(2)}`}
             subtitle="All time earnings"
@@ -195,7 +192,6 @@ const RestaurantDashboard = () => {
           />
         </div>
 
-        {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8">
           <Button asChild className="gradient-primary w-full sm:w-auto">
             <Link to="/restaurant/create-listing">
@@ -212,7 +208,6 @@ const RestaurantDashboard = () => {
           </Button>
         </div>
 
-        {/* Listings Table */}
         <Card className="p-6">
           <h2 className="text-2xl font-bold mb-6">Your Listings</h2>
 
@@ -280,7 +275,6 @@ const ListingRow = ({
 
   return (
     <div className="flex items-start sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
-      {/* Image */}
       <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-lg overflow-hidden bg-muted shrink-0">
         {listing.imageUrl ? (
           <img
@@ -295,7 +289,6 @@ const ListingRow = ({
         )}
       </div>
 
-      {/* Info */}
       <div className="flex-1 min-w-0">
         <h3 className="font-semibold text-base sm:text-lg truncate">{listing.title}</h3>
         <p className="text-xs sm:text-sm text-muted-foreground truncate mb-2">{listing.description}</p>
@@ -327,13 +320,7 @@ const ListingRow = ({
         </div>
       </div>
 
-      {/* Actions */}
       <div className="flex sm:flex-row flex-col gap-2 shrink-0">
-        {/* TODO: Implement edit listing feature
-        <Button variant="outline" size="icon" onClick={onEdit} className="h-9 w-9 sm:h-10 sm:w-10">
-          <Edit className="h-4 w-4" />
-        </Button>
-        */}
         <Button variant="outline" size="icon" onClick={onDelete} className="h-9 w-9 sm:h-10 sm:w-10">
           <Trash2 className="h-4 w-4" />
         </Button>

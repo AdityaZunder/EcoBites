@@ -82,8 +82,13 @@ export const calculateOrderTotal = (
 export const formatOrderDate = (date: string): string => {
     const orderDate = new Date(date);
     const now = new Date();
-    const diffTime = Math.abs(now.getTime() - orderDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    // Reset time components to compare just the dates
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const orderDay = new Date(orderDate.getFullYear(), orderDate.getMonth(), orderDate.getDate());
+
+    const diffTime = today.getTime() - orderDay.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) {
         return 'Today';

@@ -2,7 +2,10 @@ const express = require('express');
 const router = express.Router();
 
 module.exports = (pool) => {
-    // Get user by ID
+    /**
+     * GET /:id
+     * Retrieves a specific user by their ID.
+     */
     router.get('/:id', async (req, res) => {
         try {
             const { id } = req.params;
@@ -17,7 +20,10 @@ module.exports = (pool) => {
         }
     });
 
-    // Create user
+    /**
+     * POST /
+     * Creates a new user.
+     */
     router.post('/', async (req, res) => {
         try {
             const { email, role, name, phone } = req.body;
@@ -32,7 +38,10 @@ module.exports = (pool) => {
         }
     });
 
-    // Update premium status
+    /**
+     * PATCH /:id/premium
+     * Updates the premium status of a user.
+     */
     router.patch('/:id/premium', async (req, res) => {
         try {
             const { id } = req.params;

@@ -34,7 +34,10 @@ const toCamelCase = (obj) => {
 };
 
 module.exports = (pool) => {
-    // Get all listings
+    /**
+     * GET /
+     * Retrieves all active listings with remaining quantity.
+     */
     router.get('/', async (req, res) => {
         try {
             const result = await pool.query('SELECT * FROM listings WHERE status = $1 AND remaining_quantity > 0', ['active']);
@@ -45,7 +48,10 @@ module.exports = (pool) => {
         }
     });
 
-    // Get listings by restaurant
+    /**
+     * GET /restaurant/:restaurantId
+     * Retrieves all listings for a specific restaurant.
+     */
     router.get('/restaurant/:restaurantId', async (req, res) => {
         try {
             const { restaurantId } = req.params;
@@ -57,12 +63,15 @@ module.exports = (pool) => {
         }
     });
 
-    // Create listing
+    /**
+     * POST /
+     * Creates a new listing.
+     * Calculates expiration time based on input hours.
+     */
     router.post('/', async (req, res) => {
         try {
             const { restaurantId, title, description, originalPrice, discountedPrice, quantity, expiresInHours, isPriorityAccess, imageUrl, tags = [] } = req.body;
 
-            // Calculate expiresAt
             const expiresAt = new Date();
             expiresAt.setHours(expiresAt.getHours() + parseInt(expiresInHours));
 

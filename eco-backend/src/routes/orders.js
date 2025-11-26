@@ -2,13 +2,15 @@ const express = require('express');
 const router = express.Router();
 
 module.exports = (pool) => {
-    // Get orders by user
+    /**
+     * GET /user/:userId
+     * Retrieves all orders for a specific user.
+     */
     router.get('/user/:userId', async (req, res) => {
         try {
             const { userId } = req.params;
             const result = await pool.query('SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC', [userId]);
 
-            // Fetch items for each order with full details
             const orders = await Promise.all(result.rows.map(async (order) => {
                 const itemsResult = await pool.query(`
                     SELECT oi.*, l.title, l.description, l.image_url, l.original_price, l.discounted_price, r.name as restaurant_name
@@ -41,7 +43,8 @@ module.exports = (pool) => {
                     subtotal: parseFloat(order.subtotal),
                     serviceFee: parseFloat(order.service_fee),
                     savings: parseFloat(order.savings),
-                    totalPrice: parseFloat(order.total_price)
+                    totalPrice: parseFloat(order.total_price),
+                    restaurantIds: order.restaurant_ids
                 };
             }));
 
@@ -52,7 +55,10 @@ module.exports = (pool) => {
         }
     });
 
-    // Get order details by ID
+    /**
+     * GET /detail/:id
+     * Retrieves detailed information for a specific order.
+     */
     router.get('/detail/:id', async (req, res) => {
         try {
             const { id } = req.params;
@@ -64,7 +70,6 @@ module.exports = (pool) => {
 
             const order = orderResult.rows[0];
 
-            // Fetch items for the order
             const itemsResult = await pool.query(`
                 SELECT oi.*, l.title, l.description, l.image_url, l.original_price, l.discounted_price, r.name as restaurant_name
                 FROM order_items oi
@@ -73,7 +78,6 @@ module.exports = (pool) => {
                 WHERE oi.order_id = $1
             `, [id]);
 
-            // Format items to match frontend expectation
             const items = itemsResult.rows.map(item => ({
                 id: item.id,
                 listing: {
@@ -97,7 +101,8 @@ module.exports = (pool) => {
                 subtotal: parseFloat(order.subtotal),
                 serviceFee: parseFloat(order.service_fee),
                 savings: parseFloat(order.savings),
-                totalPrice: parseFloat(order.total_price)
+                totalPrice: parseFloat(order.total_price),
+                restaurantIds: order.restaurant_ids
             });
         } catch (err) {
             console.error(err);
@@ -105,14 +110,14 @@ module.exports = (pool) => {
         }
     });
 
-    // Get orders by restaurant
+    /**
+     * GET /restaurant/:restaurantId
+     * Retrieves all orders associated with a specific restaurant.
+     */
     router.get('/restaurant/:restaurantId', async (req, res) => {
         try {
             const { restaurantId } = req.params;
 
-            // Get orders that contain items from this restaurant
-            // We need to join with order_items and listings to filter by restaurant_id
-            // Also join with users to get customer name
             const result = await pool.query(`
                 SELECT DISTINCT o.*, u.name as user_name, u.email as user_email
                 FROM orders o
@@ -123,7 +128,6 @@ module.exports = (pool) => {
                 ORDER BY o.created_at DESC
             `, [restaurantId]);
 
-            // For each order, fetch the items specific to this restaurant
             const orders = await Promise.all(result.rows.map(async (order) => {
                 const itemsResult = await pool.query(`
                     SELECT oi.*, l.title, l.image_url
@@ -154,14 +158,17 @@ module.exports = (pool) => {
         }
     });
 
-    // Create order
+    /**
+     * POST /
+     * Creates a new order.
+     * Transactional operation that updates listings and restaurant earnings.
+     */
     router.post('/', async (req, res) => {
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
             const { userId, items, subtotal, serviceFee, savings, totalPrice, restaurantIds, deliveryAddress, pickupTime, specialInstructions } = req.body;
 
-            // Validate quantities before creating order
             for (const item of items) {
                 const listingResult = await client.query('SELECT remaining_quantity, title FROM listings WHERE id = $1', [item.listing.id]);
                 if (listingResult.rows.length === 0) {
@@ -173,7 +180,6 @@ module.exports = (pool) => {
                 }
             }
 
-            // Create Order
             let order;
             try {
                 const orderResult = await client.query(
@@ -187,7 +193,6 @@ module.exports = (pool) => {
                 throw new Error('Order insert failed: ' + e.message);
             }
 
-            // Create Order Items
             for (const item of items) {
                 try {
                     await client.query(
@@ -200,7 +205,6 @@ module.exports = (pool) => {
                     throw new Error('Item insert failed: ' + e.message);
                 }
 
-                // Update listing quantity and status
                 try {
                     await client.query(
                         `UPDATE listings 
@@ -216,7 +220,6 @@ module.exports = (pool) => {
                     throw new Error('Listing update failed: ' + e.message);
                 }
 
-                // Update restaurant earnings and total orders
                 try {
                     const itemTotal = item.priceAtPurchase * item.quantity;
                     await client.query(
@@ -243,6 +246,35 @@ module.exports = (pool) => {
             res.status(500).json({ error: err.message });
         } finally {
             client.release();
+        }
+    });
+
+    /**
+     * PUT /:id/status
+     * Updates the status of an order.
+     */
+    router.put('/:id/status', async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { status } = req.body;
+
+            if (!['pending', 'confirmed', 'completed', 'cancelled'].includes(status)) {
+                return res.status(400).json({ error: 'Invalid status' });
+            }
+
+            const result = await pool.query(
+                'UPDATE orders SET status = $1 WHERE id = $2 RETURNING *',
+                [status, id]
+            );
+
+            if (result.rows.length === 0) {
+                return res.status(404).json({ error: 'Order not found' });
+            }
+
+            res.json(result.rows[0]);
+        } catch (err) {
+            console.error(err);
+            res.status(500).json({ error: 'Server error' });
         }
     });
 
