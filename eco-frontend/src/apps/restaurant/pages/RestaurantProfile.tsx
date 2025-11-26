@@ -11,6 +11,7 @@ import { mockRestaurants } from '@/shared/lib/mockData';
 import { Restaurant } from '@/shared/types';
 import { Leaf, ArrowLeft, Upload } from 'lucide-react';
 import { useToast } from '@/shared/hooks/use-toast';
+import { PlaceholderMap } from '@/shared/components/common/PlaceholderMap';
 
 const RestaurantProfile = () => {
   const { user } = useAuth();
@@ -149,6 +150,11 @@ const RestaurantProfile = () => {
                   onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
                   required
                 />
+              </div>
+
+              {/* Map Preview */}
+              <div className="h-48 rounded-xl overflow-hidden border border-border/50">
+                <PlaceholderMap label={formData.address || "Restaurant Location"} />
               </div>
 
               <div className="space-y-2">

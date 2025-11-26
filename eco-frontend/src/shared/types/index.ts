@@ -15,6 +15,9 @@ export interface User {
   // Daily order limit tracking (TODO: Move to backend)
   dailyOrdersPlacedToday?: number;
   lastOrderDate?: string;
+  // Daily priority listing limit tracking for restaurants (TODO: Move to backend)
+  dailyPriorityItemsAddedToday?: number;
+  lastPriorityItemDate?: string;
   createdAt: string;
 }
 

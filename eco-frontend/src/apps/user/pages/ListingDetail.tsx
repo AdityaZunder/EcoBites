@@ -11,6 +11,7 @@ import { Listing, Restaurant } from '@/shared/types';
 import { ArrowLeft, MapPin, Clock, Star, ShoppingCart, Share2, Heart } from 'lucide-react';
 import { useToast } from '@/shared/hooks/use-toast';
 import { SkeletonLoader } from '@/shared/components/common/SkeletonLoader';
+import { PlaceholderMap } from '@/shared/components/common/PlaceholderMap';
 
 const ListingDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -178,6 +179,11 @@ const ListingDetail = () => {
               </Badge>
             </div>
           </Card>
+
+          {/* Map Location */}
+          <div className="h-48 rounded-2xl overflow-hidden shadow-sm border border-border/50">
+            <PlaceholderMap label={restaurant.address} />
+          </div>
 
           <div className="space-y-6">
             <p className="text-lg text-muted-foreground leading-relaxed">

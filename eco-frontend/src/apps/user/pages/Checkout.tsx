@@ -14,6 +14,7 @@ import { PageHeader } from '@/shared/components/common/PageHeader';
 import { createOrder } from '@/shared/lib/orderUtils';
 import { calculateServiceFee, isPremiumActive } from '@/shared/lib/premiumUtils';
 import { Badge } from '@/shared/components/ui/badge';
+import { PlaceholderMap } from '@/shared/components/common/PlaceholderMap';
 
 const Checkout = () => {
   const { items, totalPrice, clearCart } = useCart();
@@ -186,6 +187,11 @@ const Checkout = () => {
                     placeholder="(555) 123-4567"
                     className="h-11"
                   />
+                </div>
+
+                {/* Map Preview */}
+                <div className="h-40 rounded-xl overflow-hidden border border-border/50">
+                  <PlaceholderMap label="Delivery Location" />
                 </div>
               </div>
             </Card>
